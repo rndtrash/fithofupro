@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=0.1.0
+Name=FiThoFuPro
+Comment=Fight with your procrastination using non-effective methods!
+Exec=/usr/bin/fithofupro %U
+Icon=fithofupro
+Terminal=false
+Type=Application
+Categories=Qt;Utility
+MimeType=
+GenericName=FiThoFuPro
