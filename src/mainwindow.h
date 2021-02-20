@@ -7,7 +7,7 @@
 #include <QCloseEvent>
 #include <QMessageBox>
 #include <QThreadPool>
-#include <QSemaphore>
+#include <QLabel>
 
 #include "macro.h"
 #include "projectfoldertype.h"
@@ -16,6 +16,13 @@
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
+
+typedef enum
+{
+    NOT_LEAVING = 0,
+    FORCED,
+    DESERVED
+} AppExitType;
 
 class MainWindow : public QMainWindow
 {
@@ -48,13 +55,22 @@ private:
     ProjectFolderReadTask *pfrTask;
     ProjectFolderType *pf;
 
-    bool forceExit = false;
+    AppExitType appExit = NOT_LEAVING;
 
     // Settings
     bool param_hiddenToTray;
     QString param_projectsFolder;
-    unsigned int param_timesLostToTheirOwnProcrastination;
+    uint param_timesLostToTheirOwnProcrastination;
+    uint param_discardWinOverProcrastinationIn;
+    uint param_latestChange;
+
+    bool isFinishedScanning = true;
+
+    uint stats_unfinishedProjects = 0;
+    uint stats_abandonedProjects = 0;
+    uint stats_finishedProjects = 0;
 
     void readProjectFolder();
+    void renderTable();
 };
 #endif // MAINWINDOW_H

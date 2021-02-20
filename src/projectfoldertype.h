@@ -7,7 +7,7 @@
 
 typedef enum {
     UNDEFINED = 0,
-    FORGOTTEN,
+    ABANDONED,
     IN_PROGRESS,
     FINISHED
 } ProjectStatusType;

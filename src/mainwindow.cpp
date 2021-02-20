@@ -92,6 +92,8 @@ void MainWindow::readSettings()
     QSETTINGS_READ_PROPERTY(hiddenToTray, false, toBool)
     QSETTINGS_READ_PROPERTY(projectsFolder, "", toString)
     QSETTINGS_READ_PROPERTY(timesLostToTheirOwnProcrastination, 0, toUInt)
+    QSETTINGS_READ_PROPERTY(discardWinOverProcrastinationIn, 12 * 60 * 60 * 1000, toUInt)
+    QSETTINGS_READ_PROPERTY(latestChange, QDateTime::currentDateTime().toTime_t(), toUInt)
     settings.endGroup();
 
     pfrTask->setProjectFolder(param_projectsFolder);
@@ -105,6 +107,8 @@ void MainWindow::saveSettings()
     QSETTINGS_SAVE_PROPERTY(hiddenToTray)
     QSETTINGS_SAVE_PROPERTY(projectsFolder)
     QSETTINGS_SAVE_PROPERTY(timesLostToTheirOwnProcrastination)
+    QSETTINGS_SAVE_PROPERTY(discardWinOverProcrastinationIn)
+    QSETTINGS_SAVE_PROPERTY(latestChange)
     settings.endGroup();
 
     settings.beginGroup("Projects");
@@ -117,9 +121,12 @@ void MainWindow::saveSettings()
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {
-    if (forceExit)
+    if (appExit != NOT_LEAVING)
     {
-        // TODO: mock user for exiting
+        if (appExit == FORCED)
+        {
+            // TODO: mock user for exiting
+        }
         QThreadPool::globalInstance()->waitForDone();
         saveSettings();
         event->accept();
@@ -148,6 +155,9 @@ void MainWindow::changeEvent(QEvent *event)
 
 void MainWindow::pfrCallback()
 {
+    ui->tableWidget->setEnabled(false);
+
+    uint latestChange = 0;
 #ifdef QT_DEBUG
     qDebug() << "PFR:" << "Поток для рекурсивного поиска по папкам завершил свою работу.";
 #endif
@@ -165,19 +175,51 @@ void MainWindow::pfrCallback()
                  << QString::fromUtf8(entry.first.c_str()) << ":"
                  << entry.second->pst << "," << QDateTime::fromTime_t(entry.second->lastChange);
 #endif
+        stats_finishedProjects = stats_abandonedProjects = stats_unfinishedProjects = 0;
+        switch (entry.second->pst)
+        {
+        case ProjectStatusType::IN_PROGRESS:
+            stats_unfinishedProjects++;
+            if (entry.second->lastChange > latestChange)
+                latestChange = entry.second->lastChange;
+            break;
+        case ProjectStatusType::FINISHED:
+            stats_finishedProjects++;
+            break;
+        case ProjectStatusType::ABANDONED:
+            stats_abandonedProjects++;
+        default:
+            break;
+        }
     }
     settings.endGroup();
+
+    param_latestChange = latestChange;
+#ifdef QT_DEBUG
+    qDebug() << "PFR:" << "Последнее изменение сделано" << QDateTime::fromTime_t(latestChange);
+#endif
+
+    renderTable();
+    ui->tableWidget->setEnabled(true);
+    isFinishedScanning = true;
 }
 
 void MainWindow::dudeIReallyHaveToExit()
 {
-    int dc = this->mbQuit->exec();
-    if (dc == QMessageBox::Yes)
+    if (QDateTime::currentDateTime().toTime_t() - param_latestChange < param_discardWinOverProcrastinationIn)
     {
-        param_timesLostToTheirOwnProcrastination++;
-        forceExit = true;
-        this->close();
+        appExit = DESERVED;
+    } else {
+        int dc = this->mbQuit->exec();
+        if (dc == QMessageBox::Yes)
+        {
+            param_timesLostToTheirOwnProcrastination++;
+            appExit = FORCED;
+        } else {
+            return;
+        }
     }
+    this->close();
 }
 
 void MainWindow::readProjectFolder()
@@ -191,5 +233,18 @@ void MainWindow::readProjectFolder()
     }
 
     this->statusBar()->clearMessage();
+    // TODO: Show status messages
+    isFinishedScanning = false;
     QThreadPool::globalInstance()->start(pfrTask);
+}
+
+void MainWindow::renderTable()
+{
+    ui->tableWidget->setRowCount(pf->size());
+    uint i = 0;
+    for (const auto &entry : *pf)
+    {
+        //ui->tableWidget->setIndexWidget()
+        i++;
+    }
 }

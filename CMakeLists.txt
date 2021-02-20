@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.11)
 
-project(fithofupro LANGUAGES CXX)
+project(fithofupro LANGUAGES CXX VERSION 0.1.0)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
@@ -34,10 +34,12 @@ add_executable(fithofupro
     src/mainwindow.h
     src/projectfolderreadtask.h
     src/projectfoldertype.h
+    src/projectfoldermodel.h
     src/mainwindow.ui
     src/main.cpp
     src/mainwindow.cpp
     src/projectfolderreadtask.cpp
+    src/projectfoldermodel.cpp
     ${QRC_FILES}
     ${TS_FILES}
 )
@@ -45,3 +47,29 @@ add_executable(fithofupro
 target_link_libraries(fithofupro PRIVATE Qt5::Widgets)
 
 qt5_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
+
+SET(CMAKE_INSTALL_PREFIX /usr)
+SET(DDM_DESKTOP_DIR "/usr/share/applications")
+SET(DDM_PIXMAPS_DIR "/usr/share/icons")
+
+install(TARGETS fithofupro)
+
+install(FILES share/fithofupro.desktop DESTINATION ${DDM_DESKTOP_DIR})
+
+install(FILES "${CMAKE_SOURCE_DIR}/res/fithofupro.png" DESTINATION ${DDM_PIXMAPS_DIR})
+
+find_program(XDG-DESKTOP-MENU_EXECUTABLE xdg-desktop-menu)
+install(CODE "
+  execute_process(COMMAND ${XDG-DESKTOP-MENU_EXECUTABLE} install --novendor ${DDM_DESKTOP_DIR}/fithofupro.desktop)
+  "
+)
+
+set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+set(CPACK_DEBIAN_PACKAGE_SECTION utils)
+set(CPACK_DEBIAN_PACKAGE_DESCRIPTION "Fight with your procrastination using non-effective methods!")
+
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
+set(CPACK_PACKAGE_EXECUTABLE "fithofupro" "FiThoFuPro")
+SET(CPACK_SET_DESTDIR TRUE)
+
+INCLUDE(CPack)
